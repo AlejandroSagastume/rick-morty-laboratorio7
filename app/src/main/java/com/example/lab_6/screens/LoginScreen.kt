@@ -54,7 +54,7 @@ fun LoginScreen(
                     .height(56.dp)
             ) {
                 Text(
-                    text = "Entrar",
+                    text = "Empezar",
                     style = MaterialTheme.typography.titleMedium
                 )
             }
