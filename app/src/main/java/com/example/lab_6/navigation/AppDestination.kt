@@ -9,4 +9,25 @@ object Login
 object Characters
 
 @Serializable
+object Main
+
+@Serializable
+object CharactersGraph
+
+@Serializable
+object CharactersList
+
+@Serializable
 data class CharacterDetails(val id: Int)
+
+@Serializable
+object LocationsGraph
+
+@Serializable
+object LocationsList
+
+@Serializable
+data class LocationDetails(val id: Int)
+
+@Serializable
+object Profile
