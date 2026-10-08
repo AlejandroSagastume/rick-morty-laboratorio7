@@ -13,7 +13,6 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -23,9 +22,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
-import com.example.lab_6.data.CharacterDb
-import com.example.lab_6.data.LocationDb
 import com.example.lab_6.navigation.CharacterDetails
 import com.example.lab_6.navigation.CharactersGraph
 import com.example.lab_6.navigation.CharactersList
@@ -35,12 +31,12 @@ import com.example.lab_6.navigation.LocationsGraph
 import com.example.lab_6.navigation.LocationsList
 import com.example.lab_6.navigation.Main
 import com.example.lab_6.navigation.Profile
-import com.example.lab_6.screens.CharacterDetailsScreen
-import com.example.lab_6.screens.CharactersScreen
-import com.example.lab_6.screens.LoginScreen
-import com.example.lab_6.screens.LocationDetailsScreen
-import com.example.lab_6.screens.LocationsScreen
-import com.example.lab_6.screens.ProfileScreen
+import com.example.lab_6.screens.characters.CharacterDetailsScreen
+import com.example.lab_6.screens.characters.CharactersScreen
+import com.example.lab_6.screens.login.LoginScreen
+import com.example.lab_6.screens.locations.LocationDetailsScreen
+import com.example.lab_6.screens.locations.LocationsScreen
+import com.example.lab_6.screens.profile.ProfileScreen
 import com.example.lab_6.ui.theme.LAB_6Theme
 
 class MainActivity : ComponentActivity() {
@@ -63,8 +59,6 @@ private fun AppNavigation(
     onExit: () -> Unit
 ) {
     val navController = rememberNavController()
-    val characterDb = remember { CharacterDb() }
-    val locationDb = remember { LocationDb() }
 
     NavHost(
         navController = navController,
@@ -84,8 +78,6 @@ private fun AppNavigation(
 
         composable<Main> {
             MainShell(
-                characterDb = characterDb,
-                locationDb = locationDb,
                 onExit = onExit,
                 onLogout = {
                     navController.navigate(Login) {
@@ -110,8 +102,6 @@ private enum class BottomDestination(
 
 @Composable
 private fun MainShell(
-    characterDb: CharacterDb,
-    locationDb: LocationDb,
     onExit: () -> Unit,
     onLogout: () -> Unit
 ) {
@@ -166,14 +156,12 @@ private fun MainShell(
             navigation<CharactersGraph>(startDestination = CharactersList) {
                 composable<CharactersList> {
                     CharactersScreen(
-                        characters = characterDb.getAllCharacters(),
                         onCharacterClick = { navController.navigate(CharacterDetails(it)) },
                         onExit = onExit
                     )
                 }
-                composable<CharacterDetails> { entry ->
+                composable<CharacterDetails> {
                     CharacterDetailsScreen(
-                        character = characterDb.getCharacterById(entry.toRoute<CharacterDetails>().id),
                         onBack = { navController.popBackStack() }
                     )
                 }
@@ -182,13 +170,11 @@ private fun MainShell(
             navigation<LocationsGraph>(startDestination = LocationsList) {
                 composable<LocationsList> {
                     LocationsScreen(
-                        locations = locationDb.getAllLocations(),
                         onLocationClick = { navController.navigate(LocationDetails(it)) }
                     )
                 }
-                composable<LocationDetails> { entry ->
+                composable<LocationDetails> {
                     LocationDetailsScreen(
-                        location = locationDb.getLocationById(entry.toRoute<LocationDetails>().id),
                         onBack = { navController.popBackStack() }
                     )
                 }

@@ -1,4 +1,4 @@
-package com.example.lab_6.screens
+package com.example.lab_6.screens.characters
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,6 +22,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,13 +33,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.lab_6.data.Character
+import com.example.lab_6.screens.common.ErrorLayout
+import com.example.lab_6.screens.common.LoadingLayout
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CharacterDetailsScreen(
-    character: Character?,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    viewModel: CharacterDetailsViewModel = viewModel()
 ) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
     Scaffold(
         topBar = {
             TopAppBar(
@@ -61,20 +67,23 @@ fun CharacterDetailsScreen(
             )
         }
     ) { innerPadding ->
-        if (character != null) {
-            CharacterDetailsContent(
-                character = character,
-                contentPadding = innerPadding
+        when {
+            state.isLoading -> LoadingLayout(
+                modifier = Modifier.padding(innerPadding),
+                onClick = viewModel::onLoadingClicked
             )
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(text = "Character not found")
+            state.hasError -> ErrorLayout(
+                message = "Error al obtener personaje",
+                modifier = Modifier.padding(innerPadding),
+                onRetry = viewModel::retry
+            )
+            state.data != null -> {
+                state.data?.let { character ->
+                    CharacterDetailsContent(
+                        character = character,
+                        contentPadding = innerPadding
+                    )
+                }
             }
         }
     }

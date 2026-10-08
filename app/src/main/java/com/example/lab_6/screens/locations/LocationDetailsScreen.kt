@@ -1,4 +1,4 @@
-package com.example.lab_6.screens
+package com.example.lab_6.screens.locations
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,16 +17,21 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.lab_6.data.Location
+import com.example.lab_6.screens.common.ErrorLayout
+import com.example.lab_6.screens.common.LoadingLayout
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocationDetailsScreen(
-    location: Location?,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    viewModel: LocationDetailsViewModel = viewModel()
 ) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
     Scaffold(
         topBar = {
             TopAppBar(
@@ -46,21 +51,32 @@ fun LocationDetailsScreen(
             )
         }
     ) { innerPadding ->
-        if (location == null) {
-            Text("Location not found", modifier = Modifier.padding(innerPadding).padding(24.dp))
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(location.name, style = MaterialTheme.typography.headlineSmall)
-                LocationDetailRow("ID", location.id.toString())
-                LocationDetailRow("Name", location.name)
-                LocationDetailRow("Type", location.type)
-                LocationDetailRow("Dimension", location.dimension)
+        when {
+            state.isLoading -> LoadingLayout(
+                modifier = Modifier.padding(innerPadding),
+                onClick = viewModel::onLoadingClicked
+            )
+            state.hasError -> ErrorLayout(
+                message = "Error al obtener ubicación",
+                modifier = Modifier.padding(innerPadding),
+                onRetry = viewModel::retry
+            )
+            state.data != null -> {
+                state.data?.let { location ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text(location.name, style = MaterialTheme.typography.headlineSmall)
+                        LocationDetailRow("ID", location.id.toString())
+                        LocationDetailRow("Name", location.name)
+                        LocationDetailRow("Type", location.type)
+                        LocationDetailRow("Dimension", location.dimension)
+                    }
+                }
             }
         }
     }
