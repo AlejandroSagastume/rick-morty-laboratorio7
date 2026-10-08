@@ -1,4 +1,4 @@
-package com.example.lab_6.screens
+package com.example.lab_6.screens.characters
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
@@ -21,6 +21,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,15 +31,18 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.lab_6.data.Character
+import com.example.lab_6.screens.common.ErrorLayout
+import com.example.lab_6.screens.common.LoadingLayout
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CharactersScreen(
-    characters: List<Character>,
     onCharacterClick: (Int) -> Unit,
-    onExit: () -> Unit
+    onExit: () -> Unit,
+    viewModel: CharactersViewModel = viewModel()
 ) {
     BackHandler(onBack = onExit)
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -53,21 +59,32 @@ fun CharactersScreen(
             )
         }
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(
-                items = characters,
-                key = { character -> character.id }
-            ) { character ->
-                CharacterCard(
-                    character = character,
-                    onClick = { onCharacterClick(character.id) }
-                )
+        when {
+            state.isLoading -> LoadingLayout(
+                modifier = Modifier.padding(innerPadding),
+                onClick = viewModel::onLoadingClicked
+            )
+            state.hasError -> ErrorLayout(
+                message = "Error al obtener listado de personajes.",
+                modifier = Modifier.padding(innerPadding),
+                onRetry = viewModel::retry
+            )
+            else -> LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(
+                    items = state.data,
+                    key = { character -> character.id }
+                ) { character ->
+                    CharacterCard(
+                        character = character,
+                        onClick = { onCharacterClick(character.id) }
+                    )
+                }
             }
         }
     }

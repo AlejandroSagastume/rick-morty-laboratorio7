@@ -1,4 +1,4 @@
-package com.example.lab_6.screens
+package com.example.lab_6.screens.login
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,7 +54,7 @@ fun LoginScreen(
                     .height(56.dp)
             ) {
                 Text(
-                    text = "Entrar",
+                    text = "Empezar",
                     style = MaterialTheme.typography.titleMedium
                 )
             }
