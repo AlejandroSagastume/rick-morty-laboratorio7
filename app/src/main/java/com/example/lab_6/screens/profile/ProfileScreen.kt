@@ -28,7 +28,10 @@ import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(onLogout: () -> Unit) {
+fun ProfileScreen(
+    userName: String,
+    onLogout: () -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -56,7 +59,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
                 tint = MaterialTheme.colorScheme.primary
             )
             Spacer(Modifier.height(24.dp))
-            ProfileRow("Name", "Alejandro Sagastume")
+            ProfileRow("Name", userName.ifBlank { "Alejandro Sagastume" })
             ProfileRow("Carné", "25257")
             Spacer(Modifier.height(24.dp))
             Button(onClick = onLogout) {
