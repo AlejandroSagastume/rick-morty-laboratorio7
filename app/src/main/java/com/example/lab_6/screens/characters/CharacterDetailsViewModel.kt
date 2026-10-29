@@ -1,12 +1,12 @@
 package com.example.lab_6.screens.characters
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lab_6.data.Character
-import com.example.lab_6.data.CharacterDb
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import com.example.lab_6.data.local.AppDatabase
+import com.example.lab_6.data.mapper.toModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,37 +18,46 @@ data class CharacterDetailsState(
     val hasError: Boolean = false
 )
 
-class CharacterDetailsViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
-    private val db = CharacterDb()
+class CharacterDetailsViewModel(application: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(application) {
+    private val characterDao = AppDatabase.getDatabase(application).characterDao()
     private val id: Int = checkNotNull(savedStateHandle.get<Int>("id"))
     private val _state = MutableStateFlow(CharacterDetailsState())
     val state: StateFlow<CharacterDetailsState> = _state.asStateFlow()
-    private var loadJob: Job? = null
 
     init {
-        load()
+        loadCharacter()
+    }
+
+    private fun loadCharacter() {
+        viewModelScope.launch {
+            _state.value = CharacterDetailsState(isLoading = true)
+            val entity = runCatching { characterDao.getCharacterById(id) }.getOrNull()
+            if (entity != null) {
+                _state.value = CharacterDetailsState(isLoading = false, data = entity.toModel())
+            } else {
+                _state.value = CharacterDetailsState(isLoading = false, hasError = true)
+            }
+        }
+    }
+
+    fun toggleFavorite() {
+        val current = _state.value.data
+        if (current != null) {
+            viewModelScope.launch {
+                val newFavorite = !current.isFavorite
+                characterDao.updateFavorite(id, newFavorite)
+                _state.value = _state.value.copy(data = current.copy(isFavorite = newFavorite))
+            }
+        }
     }
 
     fun onLoadingClicked() {
         if (_state.value.isLoading) {
-            loadJob?.cancel()
             _state.value = _state.value.copy(isLoading = false, hasError = true)
         }
     }
 
-    fun retry() = load()
-
-    private fun load() {
-        loadJob?.cancel()
-        loadJob = viewModelScope.launch {
-            _state.value = CharacterDetailsState()
-            delay(2_000)
-            val character = runCatching { db.getCharacterById(id) }.getOrNull()
-            _state.value = CharacterDetailsState(
-                isLoading = false,
-                data = character,
-                hasError = character == null
-            )
-        }
+    fun retry() {
+        loadCharacter()
     }
 }

@@ -33,7 +33,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
+import com.example.lab_6.data.CharacterDb
+import com.example.lab_6.data.LocationDb
 import com.example.lab_6.data.UserPreferences
+import com.example.lab_6.data.local.AppDatabase
+import com.example.lab_6.data.mapper.toEntity
 import com.example.lab_6.navigation.CharacterDetails
 import com.example.lab_6.navigation.CharactersGraph
 import com.example.lab_6.navigation.CharactersList
@@ -50,6 +54,7 @@ import com.example.lab_6.screens.locations.LocationDetailsScreen
 import com.example.lab_6.screens.locations.LocationsScreen
 import com.example.lab_6.screens.profile.ProfileScreen
 import com.example.lab_6.ui.theme.LAB_6Theme
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
@@ -96,9 +101,21 @@ private fun AppNavigation(
     ) {
         composable<Login> {
             LoginScreen(
-                onStartClick = { name ->
+                onStartClick = { name, onComplete ->
                     coroutineScope.launch {
                         userPreferences.saveName(name)
+                        val db = AppDatabase.getDatabase(context)
+                        val charDao = db.characterDao()
+                        val locDao = db.locationDao()
+
+                        if (charDao.getCount() == 0) {
+                            delay(4_000)
+                            val charDb = CharacterDb()
+                            val locDb = LocationDb()
+                            charDao.insertAll(charDb.getAllCharacters().map { it.toEntity() })
+                            locDao.insertAll(locDb.getAllLocations().map { it.toEntity() })
+                        }
+                        onComplete(true)
                         navController.navigate(Main) {
                             popUpTo<Login> {
                                 inclusive = true
@@ -117,6 +134,9 @@ private fun AppNavigation(
                 onLogout = {
                     coroutineScope.launch {
                         userPreferences.clearName()
+                        val db = AppDatabase.getDatabase(context)
+                        db.characterDao().deleteAll()
+                        db.locationDao().deleteAll()
                         navController.navigate(Login) {
                             popUpTo(navController.graph.id) {
                                 inclusive = true

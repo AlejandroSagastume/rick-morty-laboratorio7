@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -29,11 +31,12 @@ import com.example.lab_6.R
 
 @Composable
 fun LoginScreen(
-    onStartClick: (String) -> Unit,
+    onStartClick: (String, (Boolean) -> Unit) -> Unit,
     onExit: () -> Unit
 ) {
     BackHandler(onBack = onExit)
     var name by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -62,21 +65,37 @@ fun LoginScreen(
                 onValueChange = { name = it },
                 label = { Text("Nombre") },
                 singleLine = true,
+                enabled = !isLoading,
                 modifier = Modifier.fillMaxWidth(0.8f)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
-                onClick = { if (name.isNotBlank()) onStartClick(name) },
+                onClick = {
+                    if (name.isNotBlank() && !isLoading) {
+                        isLoading = true
+                        onStartClick(name) { success ->
+                            isLoading = false
+                        }
+                    }
+                },
+                enabled = !isLoading && name.isNotBlank(),
                 modifier = Modifier
                     .fillMaxWidth(0.8f)
                     .height(56.dp)
             ) {
-                Text(
-                    text = "Iniciar sesión",
-                    style = MaterialTheme.typography.titleMedium
-                )
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text(
+                        text = "Iniciar sesión",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
             }
         }
 

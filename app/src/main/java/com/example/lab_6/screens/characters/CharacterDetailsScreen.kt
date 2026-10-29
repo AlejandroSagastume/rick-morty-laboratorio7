@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -61,6 +63,17 @@ fun CharacterDetailsScreen(
                         )
                     }
                 },
+                actions = {
+                    state.data?.let { character ->
+                        IconButton(onClick = { viewModel.toggleFavorite() }) {
+                            Icon(
+                                imageVector = if (character.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = "Favorite",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
@@ -73,7 +86,7 @@ fun CharacterDetailsScreen(
                 onClick = viewModel::onLoadingClicked
             )
             state.hasError -> ErrorLayout(
-                message = "Error al obtener personaje",
+                message = "Error al obtener personaje.",
                 modifier = Modifier.padding(innerPadding),
                 onRetry = viewModel::retry
             )

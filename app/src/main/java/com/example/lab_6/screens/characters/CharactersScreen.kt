@@ -3,6 +3,7 @@ package com.example.lab_6.screens.characters
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,7 +15,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -43,15 +50,25 @@ fun CharactersScreen(
 ) {
     BackHandler(onBack = onExit)
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val displayList = if (state.showOnlyFavorites) state.data.filter { it.isFavorite } else state.data
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = "Characters",
+                        text = if (state.showOnlyFavorites) "Favorite Characters" else "Characters",
                         color = MaterialTheme.colorScheme.onPrimary
                     )
+                },
+                actions = {
+                    IconButton(onClick = { viewModel.toggleFilterFavorites() }) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = "Filter favorites",
+                            tint = if (state.showOnlyFavorites) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary
@@ -69,6 +86,20 @@ fun CharactersScreen(
                 modifier = Modifier.padding(innerPadding),
                 onRetry = viewModel::retry
             )
+            displayList.isEmpty() && state.showOnlyFavorites -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No hay elementos a mostrar",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
             else -> LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -77,12 +108,13 @@ fun CharactersScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(
-                    items = state.data,
+                    items = displayList,
                     key = { character -> character.id }
                 ) { character ->
                     CharacterCard(
                         character = character,
-                        onClick = { onCharacterClick(character.id) }
+                        onClick = { onCharacterClick(character.id) },
+                        onFavoriteClick = { viewModel.toggleFavorite(character.id, character.isFavorite) }
                     )
                 }
             }
@@ -93,7 +125,8 @@ fun CharactersScreen(
 @Composable
 private fun CharacterCard(
     character: Character,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onFavoriteClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -113,7 +146,7 @@ private fun CharacterCard(
 
         Spacer(modifier = Modifier.width(16.dp))
 
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = character.name,
                 style = MaterialTheme.typography.titleMedium
@@ -122,6 +155,14 @@ private fun CharacterCard(
                 text = "${character.species} - ${character.status}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        IconButton(onClick = onFavoriteClick) {
+            Icon(
+                imageVector = if (character.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                contentDescription = "Favorite",
+                tint = if (character.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

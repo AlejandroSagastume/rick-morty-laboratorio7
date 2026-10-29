@@ -1,12 +1,12 @@
 package com.example.lab_6.screens.locations
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lab_6.data.Location
-import com.example.lab_6.data.LocationDb
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import com.example.lab_6.data.local.AppDatabase
+import com.example.lab_6.data.mapper.toModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,37 +18,35 @@ data class LocationDetailsState(
     val hasError: Boolean = false
 )
 
-class LocationDetailsViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
-    private val db = LocationDb()
+class LocationDetailsViewModel(application: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(application) {
+    private val locationDao = AppDatabase.getDatabase(application).locationDao()
     private val id: Int = checkNotNull(savedStateHandle.get<Int>("id"))
     private val _state = MutableStateFlow(LocationDetailsState())
     val state: StateFlow<LocationDetailsState> = _state.asStateFlow()
-    private var loadJob: Job? = null
 
     init {
-        load()
+        loadLocation()
+    }
+
+    private fun loadLocation() {
+        viewModelScope.launch {
+            _state.value = LocationDetailsState(isLoading = true)
+            val entity = runCatching { locationDao.getLocationById(id) }.getOrNull()
+            if (entity != null) {
+                _state.value = LocationDetailsState(isLoading = false, data = entity.toModel())
+            } else {
+                _state.value = LocationDetailsState(isLoading = false, hasError = true)
+            }
+        }
     }
 
     fun onLoadingClicked() {
         if (_state.value.isLoading) {
-            loadJob?.cancel()
             _state.value = _state.value.copy(isLoading = false, hasError = true)
         }
     }
 
-    fun retry() = load()
-
-    private fun load() {
-        loadJob?.cancel()
-        loadJob = viewModelScope.launch {
-            _state.value = LocationDetailsState()
-            delay(2_000)
-            val location = runCatching { db.getLocationById(id) }.getOrNull()
-            _state.value = LocationDetailsState(
-                isLoading = false,
-                data = location,
-                hasError = location == null
-            )
-        }
+    fun retry() {
+        loadLocation()
     }
 }
