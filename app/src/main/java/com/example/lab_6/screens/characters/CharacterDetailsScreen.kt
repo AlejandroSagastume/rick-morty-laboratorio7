@@ -13,18 +13,27 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
@@ -45,6 +54,9 @@ fun CharacterDetailsScreen(
     viewModel: CharacterDetailsViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var showEditDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -65,6 +77,12 @@ fun CharacterDetailsScreen(
                 },
                 actions = {
                     state.data?.let { character ->
+                        IconButton(onClick = { showEditDialog = true }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.onPrimary)
+                        }
+                        IconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onPrimary)
+                        }
                         IconButton(onClick = { viewModel.toggleFavorite() }) {
                             Icon(
                                 imageVector = if (character.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
@@ -99,6 +117,65 @@ fun CharacterDetailsScreen(
                 }
             }
         }
+    }
+
+    if (showEditDialog && state.data != null) {
+        val character = state.data!!
+        var name by remember { mutableStateOf(character.name) }
+        var species by remember { mutableStateOf(character.species) }
+        var status by remember { mutableStateOf(character.status) }
+        var gender by remember { mutableStateOf(character.gender) }
+
+        AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            title = { Text("Editar Personaje") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre") })
+                    OutlinedTextField(value = species, onValueChange = { species = it }, label = { Text("Especie") })
+                    OutlinedTextField(value = status, onValueChange = { status = it }, label = { Text("Estado") })
+                    OutlinedTextField(value = gender, onValueChange = { gender = it }, label = { Text("Género") })
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    if (name.isNotBlank()) {
+                        viewModel.updateCharacter(name, species, status, gender)
+                        showEditDialog = false
+                    }
+                }) {
+                    Text("Actualizar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Eliminar Personaje") },
+            text = { Text("¿Estás seguro de que deseas eliminar este personaje?") },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.deleteCharacter {
+                        showDeleteDialog = false
+                        onBack()
+                    }
+                }) {
+                    Text("Eliminar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }
 

@@ -4,12 +4,14 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lab_6.data.Character
-import com.example.lab_6.data.local.AppDatabase
+import com.example.lab_6.data.local.entity.CharacterEntity
 import com.example.lab_6.data.mapper.toModel
+import com.example.lab_6.data.repository.RickAndMortyRepository
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 data class CharactersState(
@@ -20,19 +22,22 @@ data class CharactersState(
 )
 
 class CharactersViewModel(application: Application) : AndroidViewModel(application) {
-    private val characterDao = AppDatabase.getDatabase(application).characterDao()
+    private val repository = RickAndMortyRepository(application)
     private val _state = MutableStateFlow(CharactersState())
     val state: StateFlow<CharactersState> = _state.asStateFlow()
+    private var loadJob: Job? = null
 
     init {
         loadCharacters()
     }
 
     private fun loadCharacters() {
-        viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true)
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
+            _state.value = CharactersState(isLoading = true)
+            delay(4_000)
             try {
-                characterDao.getAllCharacters().collectLatest { entities ->
+                repository.charactersFlow.collect { entities ->
                     val characters = entities.map { it.toModel() }
                     _state.value = _state.value.copy(
                         isLoading = false,
@@ -46,9 +51,25 @@ class CharactersViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    fun addCharacter(name: String, species: String, status: String, gender: String) {
+        viewModelScope.launch {
+            val newId = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
+            val entity = CharacterEntity(
+                id = newId,
+                name = name,
+                status = status,
+                species = species,
+                gender = gender,
+                image = "https://rickandmortyapi.com/api/character/avatar/19.jpeg",
+                isFavorite = false
+            )
+            repository.insertCharacter(entity)
+        }
+    }
+
     fun toggleFavorite(id: Int, currentFavorite: Boolean) {
         viewModelScope.launch {
-            characterDao.updateFavorite(id, !currentFavorite)
+            repository.updateCharacterFavorite(id, !currentFavorite)
         }
     }
 
@@ -58,6 +79,7 @@ class CharactersViewModel(application: Application) : AndroidViewModel(applicati
 
     fun onLoadingClicked() {
         if (_state.value.isLoading) {
+            loadJob?.cancel()
             _state.value = _state.value.copy(isLoading = false, hasError = true)
         }
     }

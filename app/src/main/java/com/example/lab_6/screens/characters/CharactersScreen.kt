@@ -16,19 +16,28 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
@@ -51,6 +60,7 @@ fun CharactersScreen(
     BackHandler(onBack = onExit)
     val state by viewModel.state.collectAsStateWithLifecycle()
     val displayList = if (state.showOnlyFavorites) state.data.filter { it.isFavorite } else state.data
+    var showAddDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -74,6 +84,14 @@ fun CharactersScreen(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showAddDialog = true },
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add character", tint = MaterialTheme.colorScheme.onPrimary)
+            }
         }
     ) { innerPadding ->
         when {
@@ -119,6 +137,41 @@ fun CharactersScreen(
                 }
             }
         }
+    }
+
+    if (showAddDialog) {
+        var name by remember { mutableStateOf("") }
+        var species by remember { mutableStateOf("") }
+        var status by remember { mutableStateOf("Alive") }
+        var gender by remember { mutableStateOf("Unknown") }
+
+        AlertDialog(
+            onDismissRequest = { showAddDialog = false },
+            title = { Text("Crear Personaje") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre") })
+                    OutlinedTextField(value = species, onValueChange = { species = it }, label = { Text("Especie") })
+                    OutlinedTextField(value = status, onValueChange = { status = it }, label = { Text("Estado") })
+                    OutlinedTextField(value = gender, onValueChange = { gender = it }, label = { Text("Género") })
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    if (name.isNotBlank()) {
+                        viewModel.addCharacter(name, species.ifBlank { "Unknown" }, status, gender)
+                        showAddDialog = false
+                    }
+                }) {
+                    Text("Guardar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }
 

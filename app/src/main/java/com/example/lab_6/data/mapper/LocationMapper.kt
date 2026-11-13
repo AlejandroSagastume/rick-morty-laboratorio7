@@ -8,7 +8,8 @@ fun LocationEntity.toModel(): Location {
         id = this.id,
         name = this.name,
         type = this.type,
-        dimension = this.dimension
+        dimension = this.dimension,
+        isFavorite = this.isFavorite
     )
 }
 
@@ -17,6 +18,7 @@ fun Location.toEntity(): LocationEntity {
         id = this.id,
         name = this.name,
         type = this.type,
-        dimension = this.dimension
+        dimension = this.dimension,
+        isFavorite = this.isFavorite
     )
 }
