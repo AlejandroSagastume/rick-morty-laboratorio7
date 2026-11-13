@@ -33,8 +33,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
+import coil.Coil
+import coil.ImageLoader
 import com.example.lab_6.data.UserPreferences
 import com.example.lab_6.data.repository.RickAndMortyRepository
+import com.example.lab_6.data.repository.RickAndMortyRepositoryImpl
 import com.example.lab_6.navigation.CharacterDetails
 import com.example.lab_6.navigation.CharactersGraph
 import com.example.lab_6.navigation.CharactersList
@@ -54,11 +57,47 @@ import com.example.lab_6.ui.theme.LAB_6Theme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        try {
+            val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
+                override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+                override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+                override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+            })
+
+            val sslContext = SSLContext.getInstance("SSL")
+            sslContext.init(null, trustAllCerts, SecureRandom())
+            val sslSocketFactory = sslContext.socketFactory
+
+            val client = OkHttpClient.Builder()
+                .sslSocketFactory(sslSocketFactory, trustAllCerts[0] as X509TrustManager)
+                .hostnameVerifier { _, _ -> true }
+                .addInterceptor { chain ->
+                    val request = chain.request().newBuilder()
+                        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+                        .build()
+                    chain.proceed(request)
+                }
+                .build()
+
+            Coil.setImageLoader(
+                ImageLoader.Builder(this)
+                    .okHttpClient { client }
+                    .build()
+            )
+        } catch (e: Exception) {
+        }
 
         setContent {
             LAB_6Theme {
@@ -100,14 +139,18 @@ private fun AppNavigation(
             LoginScreen(
                 onStartClick = { name, onComplete ->
                     coroutineScope.launch {
-                        userPreferences.saveName(name)
-                        val repository = RickAndMortyRepository(context)
-                        delay(4_000)
-                        repository.syncWithApiIfNeeded()
-                        onComplete(true)
-                        navController.navigate(Main) {
-                            popUpTo<Login> {
-                                inclusive = true
+                        try {
+                            userPreferences.saveName(name)
+                            val repository: RickAndMortyRepository = RickAndMortyRepositoryImpl(context)
+                            delay(4_000)
+                            repository.syncWithApiIfNeeded()
+                        } catch (e: Exception) {
+                        } finally {
+                            onComplete(true)
+                            navController.navigate(Main) {
+                                popUpTo<Login> {
+                                    inclusive = true
+                                }
                             }
                         }
                     }
@@ -123,7 +166,7 @@ private fun AppNavigation(
                 onLogout = {
                     coroutineScope.launch {
                         userPreferences.clearName()
-                        val repository = RickAndMortyRepository(context)
+                        val repository: RickAndMortyRepository = RickAndMortyRepositoryImpl(context)
                         repository.clearAllData()
                         navController.navigate(Login) {
                             popUpTo(navController.graph.id) {
@@ -195,11 +238,11 @@ private fun MainShell(
                 }
             }
         }
-    ) { innerPadding ->
+    ) { intellPadding ->
         NavHost(
-            navController = navController,
+            navController,
             startDestination = CharactersGraph,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(intellPadding)
         ) {
             navigation<CharactersGraph>(startDestination = CharactersList) {
                 composable<CharactersList> {

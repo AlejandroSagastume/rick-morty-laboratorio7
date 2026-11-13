@@ -1,6 +1,8 @@
 package com.example.lab_6.screens.characters
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -17,6 +19,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,7 +45,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import com.example.lab_6.data.Character
 import com.example.lab_6.screens.common.ErrorLayout
 import com.example.lab_6.screens.common.LoadingLayout
@@ -125,22 +128,24 @@ fun CharacterDetailsScreen(
         var species by remember { mutableStateOf(character.species) }
         var status by remember { mutableStateOf(character.status) }
         var gender by remember { mutableStateOf(character.gender) }
+        var image by remember { mutableStateOf(character.image) }
 
         AlertDialog(
             onDismissRequest = { showEditDialog = false },
             title = { Text("Editar Personaje") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre") })
-                    OutlinedTextField(value = species, onValueChange = { species = it }, label = { Text("Especie") })
-                    OutlinedTextField(value = status, onValueChange = { status = it }, label = { Text("Estado") })
-                    OutlinedTextField(value = gender, onValueChange = { gender = it }, label = { Text("Género") })
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre") }, singleLine = true)
+                    OutlinedTextField(value = species, onValueChange = { species = it }, label = { Text("Especie") }, singleLine = true)
+                    OutlinedTextField(value = status, onValueChange = { status = it }, label = { Text("Estado") }, singleLine = true)
+                    OutlinedTextField(value = gender, onValueChange = { gender = it }, label = { Text("Género") }, singleLine = true)
+                    OutlinedTextField(value = image, onValueChange = { image = it }, label = { Text("Imagen (URL)") }, singleLine = true)
                 }
             },
             confirmButton = {
                 Button(onClick = {
                     if (name.isNotBlank()) {
-                        viewModel.updateCharacter(name, species, status, gender)
+                        viewModel.updateCharacter(name, species, status, gender, image)
                         showEditDialog = false
                     }
                 }) {
@@ -191,13 +196,29 @@ private fun CharacterDetailsContent(
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        AsyncImage(
+        SubcomposeAsyncImage(
             model = character.image,
             contentDescription = character.name,
             modifier = Modifier
                 .size(200.dp)
                 .clip(CircleShape),
-            contentScale = ContentScale.Crop
+            contentScale = ContentScale.Crop,
+            error = {
+                Box(
+                    modifier = Modifier
+                        .size(200.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Default",
+                        modifier = Modifier.size(100.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -223,6 +244,16 @@ private fun CharacterDetailsContent(
 
 @Composable
 private fun DetailRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        StringRowContent(label, value)
+    }
+}
+
+@Composable
+private fun StringRowContent(label: String, value: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween

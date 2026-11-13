@@ -12,6 +12,9 @@ interface LocationDao {
     @Query("SELECT * FROM locations")
     fun getAllLocations(): Flow<List<LocationEntity>>
 
+    @Query("SELECT * FROM locations")
+    suspend fun getAllLocationsList(): List<LocationEntity>
+
     @Query("SELECT * FROM locations WHERE id = :id")
     suspend fun getLocationById(id: Int): LocationEntity
 

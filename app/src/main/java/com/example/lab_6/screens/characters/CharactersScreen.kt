@@ -144,22 +144,24 @@ fun CharactersScreen(
         var species by remember { mutableStateOf("") }
         var status by remember { mutableStateOf("Alive") }
         var gender by remember { mutableStateOf("Unknown") }
+        var image by remember { mutableStateOf("") }
 
         AlertDialog(
             onDismissRequest = { showAddDialog = false },
             title = { Text("Crear Personaje") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre") })
-                    OutlinedTextField(value = species, onValueChange = { species = it }, label = { Text("Especie") })
-                    OutlinedTextField(value = status, onValueChange = { status = it }, label = { Text("Estado") })
-                    OutlinedTextField(value = gender, onValueChange = { gender = it }, label = { Text("Género") })
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre") }, singleLine = true)
+                    OutlinedTextField(value = species, onValueChange = { species = it }, label = { Text("Especie") }, singleLine = true)
+                    OutlinedTextField(value = status, onValueChange = { status = it }, label = { Text("Estado") }, singleLine = true)
+                    OutlinedTextField(value = gender, onValueChange = { gender = it }, label = { Text("Género") }, singleLine = true)
+                    OutlinedTextField(value = image, onValueChange = { image = it }, label = { Text("Imagen (URL opcional)") }, singleLine = true)
                 }
             },
             confirmButton = {
                 Button(onClick = {
                     if (name.isNotBlank()) {
-                        viewModel.addCharacter(name, species.ifBlank { "Unknown" }, status, gender)
+                        viewModel.addCharacter(name, species.ifBlank { "Unknown" }, status, gender, image)
                         showAddDialog = false
                     }
                 }) {

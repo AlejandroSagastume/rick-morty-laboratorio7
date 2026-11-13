@@ -4,8 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lab_6.data.Location
-import com.example.lab_6.data.local.AppDatabase
-import com.example.lab_6.data.mapper.toModel
+import com.example.lab_6.data.repository.RickAndMortyRepository
+import com.example.lab_6.data.repository.RickAndMortyRepositoryImpl
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +25,7 @@ data class LocationsState(
 )
 
 class LocationsViewModel(application: Application) : AndroidViewModel(application) {
-    private val locationDao = AppDatabase.getDatabase(application).locationDao()
+    private val repository: RickAndMortyRepository = RickAndMortyRepositoryImpl(application)
     private val _state = MutableStateFlow(LocationsState())
     val state: StateFlow<LocationsState> = _state.asStateFlow()
     private var loadJob: Job? = null
@@ -40,14 +40,12 @@ class LocationsViewModel(application: Application) : AndroidViewModel(applicatio
             _state.value = LocationsState(isLoading = true)
             delay(4_000)
             try {
-                locationDao.getAllLocations().collect { entities ->
-                    val locations = entities.map { it.toModel() }
-                    _state.value = _state.value.copy(
-                        isLoading = false,
-                        data = locations,
-                        hasError = false
-                    )
-                }
+                val locations = repository.getLocationsList()
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                    data = locations,
+                    hasError = false
+                )
             } catch (e: Exception) {
                 _state.value = _state.value.copy(isLoading = false, hasError = true)
             }
@@ -56,7 +54,12 @@ class LocationsViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun toggleFavorite(id: Int, currentFavorite: Boolean) {
         viewModelScope.launch {
-            locationDao.updateFavorite(id, !currentFavorite)
+            repository.updateLocationFavorite(id, !currentFavorite)
+            try {
+                val locations = repository.getLocationsList()
+                _state.value = _state.value.copy(data = locations)
+            } catch (e: Exception) {
+            }
         }
     }
 

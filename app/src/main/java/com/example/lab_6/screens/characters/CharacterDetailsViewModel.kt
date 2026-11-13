@@ -6,9 +6,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.example.lab_6.data.Character
 import com.example.lab_6.data.local.AppDatabase
-import com.example.lab_6.data.local.entity.CharacterEntity
 import com.example.lab_6.data.mapper.toModel
 import com.example.lab_6.data.repository.RickAndMortyRepository
+import com.example.lab_6.data.repository.RickAndMortyRepositoryImpl
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +23,7 @@ data class CharacterDetailsState(
 )
 
 class CharacterDetailsViewModel(application: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(application) {
-    private val repository = RickAndMortyRepository(application)
+    private val repository: RickAndMortyRepository = RickAndMortyRepositoryImpl(application)
     private val characterDao = AppDatabase.getDatabase(application).characterDao()
     private val id: Int = checkNotNull(savedStateHandle.get<Int>("id"))
     private val _state = MutableStateFlow(CharacterDetailsState())
@@ -48,21 +48,20 @@ class CharacterDetailsViewModel(application: Application, savedStateHandle: Save
         }
     }
 
-    fun updateCharacter(name: String, species: String, status: String, gender: String) {
+    fun updateCharacter(name: String, species: String, status: String, gender: String, image: String) {
         val current = _state.value.data
         if (current != null) {
             viewModelScope.launch {
-                val entity = CharacterEntity(
-                    id = current.id,
+                val cleanImage = image.trim()
+                val updated = current.copy(
                     name = name,
-                    status = status,
                     species = species,
+                    status = status,
                     gender = gender,
-                    image = current.image,
-                    isFavorite = current.isFavorite
+                    image = if (cleanImage.isBlank()) current.image else cleanImage
                 )
-                repository.updateCharacter(entity)
-                _state.value = _state.value.copy(data = entity.toModel())
+                repository.updateCharacter(updated)
+                _state.value = _state.value.copy(data = updated)
             }
         }
     }
